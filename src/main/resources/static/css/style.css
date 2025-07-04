@@ -1,0 +1,75 @@
+html, body {
+    min-height: 100%;
+    margin: 0;
+}
+body{
+    display: flex;
+}
+.sidebar{
+    min-height: 100vh;
+}
+.left-content{
+    width: 100%;
+    padding: 20px;
+}
+
+/*.payments, .other{*/
+/*    max-width: 40%;*/
+/*}*/
+.payments .input-group-text, .other .input-group-text{
+    width: 40%;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.styled-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 1200px; /* Щоб усі колонки вміщалися */
+}
+
+.styled-table th,
+.styled-table td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+.styled-table thead {
+    background-color: #f5f5f5;
+    font-weight: bold;
+}
+
+.styled-table tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.styled-table td:nth-child(1) { width: 40px; }  /* № */
+.styled-table td:nth-child(2) { width: 100px; } /* Дата */
+.styled-table td:nth-child(3),
+.styled-table td:nth-child(4),
+.styled-table td:nth-child(5) { width: 110px; } /* Суми */
+.styled-table td:nth-child(6) { width: 120px; } /* Сервіс */
+.styled-table td:nth-child(7) { width: 200px; } /* ПІБ */
+.styled-table td:nth-child(8),
+.styled-table td:nth-child(9),
+.styled-table td:nth-child(10),
+.styled-table td:nth-child(11),
+.styled-table td:nth-child(12) { width: 180px; } /* Номери */
+.styled-table td:nth-child(13) { width: 160px; } /* Комфортний */
+
+#alertContainer h5 {
+    margin-top: 1rem;
+    margin-bottom: .5rem;
+}
+#alertContainer ul {
+    padding-left: 1.2rem;
+}
+#alertContainer .border {
+    background-color: #f8f9fa;
+}
