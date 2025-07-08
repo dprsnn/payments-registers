@@ -4,6 +4,7 @@ import dprsnn.com.paymentsRegisters.dto.PaymentRecord;
 import dprsnn.com.paymentsRegisters.service.CrmOrderService;
 import dprsnn.com.paymentsRegisters.service.ExcelGenerator;
 import dprsnn.com.paymentsRegisters.service.NovaPayService;
+import dprsnn.com.paymentsRegisters.service.TelegramBotNotifier;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,10 +28,12 @@ public class NovaPayController {
     private static final Logger logger = LoggerFactory.getLogger(NovaPayController.class);
     private final CrmOrderService CrmOrderService;
     private final CrmOrderService crmOrderService;
+    private final TelegramBotNotifier telegramBotNotifier;
 
-    public NovaPayController(CrmOrderService CrmOrderService, CrmOrderService crmOrderService) {
+    public NovaPayController(CrmOrderService CrmOrderService, CrmOrderService crmOrderService, TelegramBotNotifier telegramBotNotifier) {
         this.CrmOrderService = CrmOrderService;
         this.crmOrderService = crmOrderService;
+        this.telegramBotNotifier = telegramBotNotifier;
     }
 
     @GetMapping("/nova-pay")
@@ -97,6 +101,9 @@ public class NovaPayController {
                 String fileName = ExcelGenerator.generateAndSavePaymentsExcel(payments, paymentType);
                 String fileUrl = "/mono-pay/download/" + fileName;
 
+                File excelFile = new File("exports/" + fileName);
+                telegramBotNotifier.sendFileToTelegram(excelFile);
+
                 return ResponseEntity.ok(Map.of(
                         "status", "success",
                         "message", "Оплати успішно проведено та файл створено",
@@ -120,7 +127,7 @@ public class NovaPayController {
     }
 
 
-    private List<Map<String, String>> processNovaPayExcel(MultipartFile file) throws IOException {
+    public List<Map<String, String>> processNovaPayExcel(MultipartFile file) throws IOException {
         List<Map<String, String>> payments = new ArrayList<>();
 
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {

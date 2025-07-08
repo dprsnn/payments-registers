@@ -113,6 +113,7 @@ public class PaymentRecord {
                 ", paymentDate='" + paymentDate + '\'' +
                 ", amount='" + amount + '\'' +
                 ", expense='" + expense + '\'' +
+                ", ttn='" + ttn + '\'' +
                 '}';
     }
 }

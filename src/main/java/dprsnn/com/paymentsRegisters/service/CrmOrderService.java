@@ -27,6 +27,12 @@ public class CrmOrderService {
     }
 
     public List<Map<String, Object>> makePayments(List<PaymentRecord> payments, String paymentType) {
+        System.out.println("++++++++++++++++++++++++++++++");
+        for (PaymentRecord paymentRecord : payments){
+            System.out.println("================");
+            System.out.println(paymentRecord);
+        }
+
         // пошук айдішок
         if (paymentType.equals("mono_pay_uht"))
             setOrderId(payments, settingsService.getUhtSourceId());
