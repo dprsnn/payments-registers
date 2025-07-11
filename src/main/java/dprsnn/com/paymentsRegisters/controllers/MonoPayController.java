@@ -3,6 +3,7 @@ package dprsnn.com.paymentsRegisters.controllers;
 import dprsnn.com.paymentsRegisters.dto.PaymentRecord;
 import dprsnn.com.paymentsRegisters.service.CrmOrderService;
 import dprsnn.com.paymentsRegisters.service.ExcelGenerator;
+import dprsnn.com.paymentsRegisters.service.TelegramBotNotifier;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,9 +28,11 @@ public class MonoPayController {
 
     private static final Logger logger = LoggerFactory.getLogger(MonoPayController.class);
     private final CrmOrderService crmOrderService;
+    private final TelegramBotNotifier telegramBotNotifier;
 
-    public MonoPayController(CrmOrderService crmOrderService) {
+    public MonoPayController(CrmOrderService crmOrderService, TelegramBotNotifier telegramBotNotifier) {
         this.crmOrderService = crmOrderService;
+        this.telegramBotNotifier = telegramBotNotifier;
     }
 
     @GetMapping("/mono-pay")
@@ -75,6 +79,10 @@ public class MonoPayController {
             if (exportExcel) {
                 String fileName = ExcelGenerator.generateAndSavePaymentsExcel(payments, paymentType);
                 String fileUrl = "/mono-pay/download/" + fileName;
+
+                File excelFile = new File("exports/" + fileName);
+                telegramBotNotifier.sendFileToTelegram(excelFile);
+
 
                 return ResponseEntity.ok(Map.of(
                         "status", "success",

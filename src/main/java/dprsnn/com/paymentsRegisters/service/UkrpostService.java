@@ -28,18 +28,7 @@ public class UkrpostService {
         this.logRepo = logRepo;
         this.webClient = webClient;
     }
-    @Scheduled(cron = "0 0 1 * * ?") // Запускати щодня о 01:00 ночі
-    public void scheduledUpdateOrderList() {
-        System.out.println("Запуск автоматичної синхронізації УкрПошти: " + LocalDateTime.now());
-        try {
-            updateOrderList(LocalDate.now(), LocalDate.now().minusDays(1));
-            logRepo.save(new Log("Автоматична синхронізація УкрПошти успішна", LocalDateTime.now()));
-        } catch (Exception e) {
-            logRepo.save(new Log("Помилка автоматичної синхронізації УкрПошти: " + e.getMessage(), LocalDateTime.now()));
-            System.err.println("Помилка при автоматичній синхронізації: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+
 
     @SuppressWarnings("unchecked")
     @Transactional

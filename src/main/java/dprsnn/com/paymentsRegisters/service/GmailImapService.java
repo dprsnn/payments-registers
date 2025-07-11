@@ -97,7 +97,7 @@ public class GmailImapService {
                 try {
                     // Отримуємо весь вміст листа
                     String content = getTextFromMessage(message);
-                    logger.info("Вміст листа: {}", content);  // Логування вмісту листа
+//                    logger.info("Вміст листа: {}", content);  // Логування вмісту листа
 
                     // Обробка листів з посиланнями на завантаження (ФОП)
                     if (subject != null && subject.contains("Реєстр платежів ФОП")) {
@@ -107,10 +107,11 @@ public class GmailImapService {
                             Path downloadedFile = downloadFileFromUrl(downloadUrl);
 
                             if (downloadedFile != null) {
-                                logger.info("Файл завантажено: {}", downloadedFile);
+//                                logger.info("Файл завантажено: {}", downloadedFile);
                                 try {
                                     List<PaymentRecord> payments = processEvoPayFile(downloadedFile.toFile());
                                     List<Map<String, Object>> results = crmOrderService.makePayments(payments, "evo_pay");
+//                                    List<Map<String, Object>> results = new ArrayList<>();
 
                                     String resultExcelFileName = ExcelGenerator.generateAndSavePaymentsExcel(payments, "evo_pay");
                                     File excelFile = new File("exports/" + resultExcelFileName);
@@ -151,6 +152,7 @@ public class GmailImapService {
                                                 try {
                                                     List<PaymentRecord> payments = processUkrPostFile(tempFile.toFile());
                                                     List<Map<String, Object>> results = crmOrderService.makePayments(payments, "ukrpost");
+//                                                    List<Map<String, Object>> results = new ArrayList<>();
                                                     String resultExcelFileName = ExcelGenerator.generateAndSavePaymentsExcel(payments, "ukrpost");
                                                     File excelFile = new File("exports/" + resultExcelFileName);
                                                     telegramBotNotifier.sendFileToTelegram(excelFile);
@@ -176,6 +178,8 @@ public class GmailImapService {
                                                         // Обробляємо файл
                                                         List<PaymentRecord> payments = processNovaPayFile(originalFile.toFile());
                                                         List<Map<String, Object>> results = crmOrderService.makePayments(payments, "nova_pay");
+//                                                        List<Map<String, Object>> results = new ArrayList<>();
+
                                                         logger.info("Файл NovaPay успішно оброблено: {} платежів", payments.size());
 
                                                         // Надсилаємо оригінальний файл до Telegram
@@ -425,13 +429,16 @@ public class GmailImapService {
 
                 String date = getCellValueAsString(row.getCell(dateCol));
                 String amount = getCellValueAsString(row.getCell(amountCol));
-                String fee = getCellValueAsString(row.getCell(feeCol));
+                String rawFee = getCellValueAsString(row.getCell(feeCol)).replace(",", ".").trim();
+                if (rawFee.startsWith("-")) {
+                    rawFee = rawFee.substring(1); // або: rawFee = String.valueOf(Math.abs(Double.parseDouble(rawFee)));
+                }
 
                 // Створюємо PaymentRecord
                 PaymentRecord paymentRecord = new PaymentRecord();
                 paymentRecord.setPaymentDate(date);
                 paymentRecord.setAmount(amount);
-                paymentRecord.setExpense(fee);
+                paymentRecord.setExpense(rawFee);
                 paymentRecord.setSourceOrderId(orderId);
                 paymentRecord.setTypeOfPayment("evo_pay");
 

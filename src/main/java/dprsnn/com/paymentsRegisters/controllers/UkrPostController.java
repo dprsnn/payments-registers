@@ -35,7 +35,6 @@ public class UkrPostController {
 
     @GetMapping("/ukrpost")
     public String showUploadForm() {
-//        ukrpostService.updateOrderList();
         return "ukrpost";
     }
 
@@ -44,6 +43,7 @@ public class UkrPostController {
         ukrpostService.updateOrderList(LocalDate.now(), LocalDate.now().minusDays(1));
         return "redirect:/ukrpost";
     }
+
     @GetMapping("/ukrpost-update-month")
     public String updateTtnMonth() {
         ukrpostService.updateOrderList(LocalDate.now(), LocalDate.now().minusDays(30));
@@ -75,6 +75,7 @@ public class UkrPostController {
             ));
         }
     }
+
     @PostMapping("/ukrpost/make-payments")
     @ResponseBody
     public ResponseEntity<?> processMonoPayments(

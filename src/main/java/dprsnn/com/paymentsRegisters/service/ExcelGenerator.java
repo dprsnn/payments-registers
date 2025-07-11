@@ -43,7 +43,7 @@ public class ExcelGenerator {
             } else if(paymentType.equals("mono_pay_swell")){
                 firstRow.createCell(0).setCellValue("swell.in.ua виписка за перiод з " + payments.getFirst().getFormatedDatePlusOneDay() + " по " + payments.getFirst().getFormatedDatePlusOneDay());
             } else if(paymentType.equals("evo_pay")){
-                firstRow.createCell(0).setCellValue("swell.in.ua виписка за перiод з " + payments.getFirst().getFormatedDate() + " по " + payments.getFirst().getFormatedDate());
+                firstRow.createCell(0).setCellValue("EVOPAY а за перiод " + payments.getFirst().getFormatedDate());
             } else if(paymentType.equals("ukrpost")){
                 firstRow.createCell(0).setCellValue("УкрПошта виписка за " + payments.getFirst().getFormatedDate());
             }

@@ -17,41 +17,48 @@ public class CrmOrderService {
     private final SettingsService settingsService;
     private final WebClient webClient;
     private final UkrPostRepo ukrPostRepo;
+    private final TelegramBotNotifier telegramBotNotifier;
     private static final Logger logger = LoggerFactory.getLogger(CrmOrderService.class);
 
+    private static final String MONO_UHT_PAYMENT = "mono_pay_uht";
+    private static final String MONO_HH_PAYMENT = "mono_pay_hh";
+    private static final String MONO_SWELL_PAYMENT = "mono_pay_swell";
+    private static final String EVO_PAY_PAYMENT = "evo_pay";
+    private static final String UKR_POST_PAYMENT = "ukrpost";
+    private static final String NOVA_PAY_PAYMENT = "nova_pay";
 
-    public CrmOrderService(SettingsService settingsService, WebClient webClient, UkrPostRepo ukrPostRepo) {
+    public CrmOrderService(SettingsService settingsService, WebClient webClient, UkrPostRepo ukrPostRepo, TelegramBotNotifier telegramBotNotifier) {
         this.settingsService = settingsService;
         this.webClient = webClient;
         this.ukrPostRepo = ukrPostRepo;
+        this.telegramBotNotifier = telegramBotNotifier;
     }
 
     public List<Map<String, Object>> makePayments(List<PaymentRecord> payments, String paymentType) {
-        System.out.println("++++++++++++++++++++++++++++++");
-        for (PaymentRecord paymentRecord : payments){
-            System.out.println("================");
-            System.out.println(paymentRecord);
-        }
-
-        // пошук айдішок
-        if (paymentType.equals("mono_pay_uht"))
+//         пошук айдішок
+        if (paymentType.equals(MONO_UHT_PAYMENT))
             setOrderId(payments, settingsService.getUhtSourceId());
-        else if (paymentType.equals("mono_pay_hh")) {
+
+        else if (paymentType.equals(MONO_HH_PAYMENT)) {
             setOrderId(payments, settingsService.getHHSourceId());
         }
-        else if (paymentType.equals("mono_pay_swell")) {
+
+        else if (paymentType.equals(MONO_SWELL_PAYMENT)) {
             setOrderId(payments, settingsService.getSwellSourceId());
         }
-        else if (paymentType.equals("evo_pay")) {
+
+        else if (paymentType.equals(EVO_PAY_PAYMENT)) {
             setOrderId(payments, -1);
         }
-        else if (paymentType.equals("ukrpost")) {
+
+        else if (paymentType.equals(UKR_POST_PAYMENT)) {
             setUkrpostOrderId(payments);
         }
 
         List<Map<String, Object>> results = new ArrayList<>();
 
         for (PaymentRecord paymentRecord : payments) {
+
             Map<String, Object> result = new HashMap<>();
             result.put("orderId", paymentRecord.getSourceOrderId());  // Додаємо OrderId для кожного платежу
             result.put("status", "success");
@@ -66,6 +73,7 @@ public class CrmOrderService {
                             "color", "danger"
                     ));
                     result.put("status", "error");
+                    telegramBotNotifier.logErrorForTelegram(paymentRecord, paymentType, "id");
                 } else {
                     // Замовлення знайдено, додаємо його OrderId до результату
                     steps.add(Map.of(
@@ -85,48 +93,32 @@ public class CrmOrderService {
                         }
                     }
 
-                    sleepBetweenRequests(payments.size());
-
                     // Додавання оплат
-                    if (paymentType.equals("mono_pay_uht")){
-                        if (createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDatePlusOneDay(), "Еквайрінг Моно uht.net.ua", settingsService.getMonoUhtId())){
-                            steps.add(Map.of("text", "Створено нову оплату", "color", "success"));
-                        } else {
-                            steps.add(Map.of("text", "Помилка при створенні оплати", "color", "danger"));
-                        }
-                    } else if (paymentType.equals("mono_pay_hh")){
-                        if (createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDatePlusOneDay(), "Еквайрінг Моно hh.in.ua", settingsService.getMonoHHId())){
-                            steps.add(Map.of("text", "Створено нову оплату", "color", "success"));
-                        } else {
-                            steps.add(Map.of("text", "Помилка при створенні оплати", "color", "danger"));
-                        }
-                    } else if (paymentType.equals("mono_pay_swell")){
-                        if (createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDatePlusOneDay(), "Плата бай Моно Септівел", settingsService.getMonoSwellId())){
-                            steps.add(Map.of("text", "Створено нову оплату", "color", "success"));
-                        } else {
-                            steps.add(Map.of("text", "Помилка при створенні оплати", "color", "danger"));
-                        }
-                    } else if (paymentType.equals("evo_pay")){
-                        if (createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Evopay", settingsService.getEvoPayId())){
-                            steps.add(Map.of("text", "Створено нову оплату", "color", "success"));
-                        } else {
-                            steps.add(Map.of("text", "Помилка при створенні оплати", "color", "danger"));
-                        }
-                    } else if (paymentType.equals("ukrpost")){
-                        if (createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Укр Пошта", settingsService.getUkrpostId())){
-                            steps.add(Map.of("text", "Створено нову оплату", "color", "success"));
-                        } else {
-                            steps.add(Map.of("text", "Помилка при створенні оплати", "color", "danger"));
-                        }
-                    } else if (paymentType.equals("nova_pay")){
-                        if (createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Післяплата NovaPay", settingsService.getNovaPayId())) {
-                            steps.add(Map.of("text", "Створено нову оплату", "color", "success"));
-                        } else {
-                            steps.add(Map.of("text", "Помилка при створенні оплати", "color", "danger"));
-                        }
+                    boolean paymentCreated = false;
+
+                    if (paymentType.equals(MONO_UHT_PAYMENT)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDatePlusOneDay(), "Еквайрінг Моно uht.net.ua", settingsService.getMonoUhtId());
+                    } else if (paymentType.equals(MONO_HH_PAYMENT)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDatePlusOneDay(), "Еквайрінг Моно hh.in.ua", settingsService.getMonoHHId());
+                    } else if (paymentType.equals(MONO_SWELL_PAYMENT)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDatePlusOneDay(), "Плата бай Моно Септівел", settingsService.getMonoSwellId());
+                    } else if (paymentType.equals(EVO_PAY_PAYMENT)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Evopay", settingsService.getEvoPayId());
+                    } else if (paymentType.equals(UKR_POST_PAYMENT)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Укр Пошта", settingsService.getUkrpostId());
+                    } else if (paymentType.equals(NOVA_PAY_PAYMENT)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Післяплата NovaPay", settingsService.getNovaPayId());
                     }
 
-                    sleepBetweenRequests(payments.size());
+                    if (!paymentCreated) {
+                        steps.add(Map.of(
+                                "text", "Помилка при створенні оплати - операція перервана",
+                                "color", "danger"
+                        ));
+                        result.put("status", "error");
+                        telegramBotNotifier.logErrorForTelegram(paymentRecord, paymentType, "payment");
+                        continue; // Переходимо до наступного платежу
+                    }
 
                     // Створення витрати
                     if (createExpence(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getExpense(), paymentRecord.getFormatedDatePlusOneDay(), paymentType)) {
@@ -136,7 +128,7 @@ public class CrmOrderService {
                     }
 
                     // Оновлення статусу та кастомного поля
-                    if (paymentType.equals("evo_pay") || paymentType.equals("ukrpost") || paymentType.equals("nova_pay")){
+                    if (paymentType.equals(EVO_PAY_PAYMENT) || paymentType.equals(UKR_POST_PAYMENT) || paymentType.equals(NOVA_PAY_PAYMENT)){
                         if (updateStatusAndCustomField(Long.valueOf(paymentRecord.getOrderId()), settingsService.getStatusId(), settingsService.getCustomField(), paymentRecord.getFormatedDate())) {
                             steps.add(Map.of("text", "Оновлено статус та поле", "color", "success"));
                         } else {
@@ -161,8 +153,8 @@ public class CrmOrderService {
             }
 
             results.add(result);
+            sleep(payments.size());
         }
-
         return results;
     }
 
@@ -187,7 +179,6 @@ public class CrmOrderService {
     private void setOrderId(List<PaymentRecord> payments, int monoId) {
         for (PaymentRecord payment : payments) {
             String sourceOrderId = payment.getSourceOrderId();
-//            System.out.println("📝 Запит до API з sourceOrderId: " + sourceOrderId);
             String url;
             if (monoId == -1){
                 url = String.format(
@@ -201,7 +192,7 @@ public class CrmOrderService {
                 );
             }
 
-            System.out.println("📍 URL запиту: " + url);
+//            System.out.println("📍 URL запиту: " + url);
 
             try {
                 Map<String, Object> response = webClient.get()
@@ -237,10 +228,16 @@ public class CrmOrderService {
                         payment.setOrderId(orderId);
                         System.out.println("✅ Для sourceOrderId=" + sourceOrderId + " знайдено orderId=" + orderId);
                     } else {
-                        // Якщо замовлення не знайдено, встановлюємо orderId = -1
-                        payment.setOrderId("-1");
-                        System.out.println("ℹ️ Замовлення з source_uuid=" + sourceOrderId + " не знайдено в API. Встановлено orderId = -1");
-                    }
+                        // Обробка ево пей
+                        if(monoId == -1){
+                            payment.setOrderId(payment.getSourceOrderId());
+                            System.out.println("ℹ️ Замовлення з source_uuid=" + sourceOrderId + " не знайдено в СРМ. Встановлено orderId source_uuid");
+                        } else {
+                            // Якщо замовлення не знайдено, встановлюємо orderId = -1
+                            payment.setOrderId("-1");
+                            System.out.println("ℹ️ Замовлення з source_uuid=" + sourceOrderId + " не знайдено в СРМ. Встановлено orderId = -1");
+                            }
+                        }
                 } else {
 //                    System.out.println("⚠️ Відповідь API не містить поля 'data' для sourceOrderId: " + sourceOrderId);
                     // Якщо немає поля 'data', встановлюємо orderId = -1
@@ -376,14 +373,14 @@ public class CrmOrderService {
             }
             Map<String, Object> payload;
 
-            if (paymentType.equals("evo_pay")){
+            if (paymentType.equals(EVO_PAY_PAYMENT)){
                 payload = Map.of(
                         "expense_type_id", settingsService.getEvoExpenseId(),
                         "expense_type", "Комисия Evo Pay",
                         "amount", amount,
                         "payment_date", date
                 );
-            } else if(paymentType.equals("nova_pay")) {
+            } else if(paymentType.equals(NOVA_PAY_PAYMENT)) {
                 payload = Map.of(
                         "expense_type_id", settingsService.getNovaExpenseId(),
                         "expense_type", "Комисия Nova Pay",
@@ -398,8 +395,6 @@ public class CrmOrderService {
                         "payment_date", date
                 );
             }
-
-
 
             webClient.post()
                     .uri(url)
@@ -452,18 +447,19 @@ public class CrmOrderService {
         }
     }
 
-    private void sleepBetweenRequests(int size) {
-        if(size > 10 && size < 30){
+    private void sleep(int size) {
+
+        if (size<=10){
             try {
-                Thread.sleep(1000);
-                System.out.println("SLEEPING TIME");
+                Thread.sleep(2000);
+                System.out.println("Sleep 2 sec. Number of payments - " + size);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-        } else if(size >= 30){
+        } else {
             try {
-                Thread.sleep(1000);
-                System.out.println("SLEEPING TIME");
+                Thread.sleep(6000);
+                System.out.println("Sleep 6 sec. Number of payments - " + size);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
