@@ -47,6 +47,7 @@ public class SettingsController {
 
     @PostMapping("/save-payments")
     public String savePayments(@RequestParam(name = "nova-pay", required = false) String novaPay,
+                               @RequestParam(name = "nova-pay-swell", required = false) String novaPaySwell,
                                @RequestParam(name = "evo-pay", required = false) String evoPay,
                                @RequestParam(name = "mono-uht", required = false) String monoUht,
                                @RequestParam(name = "mono-hh", required = false) String monoHh,
@@ -56,7 +57,7 @@ public class SettingsController {
         redirectAttributes.addFlashAttribute("successMessage", "ID оплат успішно збережено!");
 
 //        System.out.println(novaPay + " " + monoUht + " " + monoHh + " " + monoSwell);
-        settingsService.savePayments(novaPay, monoUht, monoHh, monoSwell, evoPay, ukrpost);
+        settingsService.savePayments(novaPay, novaPaySwell ,monoUht, monoHh, monoSwell, evoPay, ukrpost);
 
         return "redirect:/settings";
 
@@ -89,6 +90,22 @@ public class SettingsController {
         // Зберігаємо дані через сервіс
 //        System.out.println("====" + monoExpenseId);
         settingsService.saveSources(uhtSource, swellSource, hhSource);
+
+        return "redirect:/settings";
+    }
+
+    @PostMapping("/save-mono")
+    public String saveMono(@RequestParam(name = "general-mono", required = false) String generalMono,
+                              @RequestParam(name = "mono-swell-eq", required = false) String monoSwellEq,
+                              @RequestParam(name = "mono-uht-eq", required = false) String monoUhtEq,
+                              @RequestParam(name = "mono-hh-eq", required = false) String monoHHEq,
+                              RedirectAttributes redirectAttributes) {
+
+        redirectAttributes.addFlashAttribute("successMessage", "Налаштування монобанк успішно збережено!");
+
+        // Зберігаємо дані через сервіс
+//        System.out.println("====" + monoExpenseId);
+        settingsService.saveMonoSettings(generalMono, monoSwellEq, monoUhtEq, monoHHEq);
 
         return "redirect:/settings";
     }

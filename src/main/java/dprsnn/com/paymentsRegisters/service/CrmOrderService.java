@@ -2,13 +2,16 @@ package dprsnn.com.paymentsRegisters.service;
 
 import dprsnn.com.paymentsRegisters.dto.CrmPayment;
 import dprsnn.com.paymentsRegisters.dto.PaymentRecord;
+import dprsnn.com.paymentsRegisters.models.ProcessedOrders;
 import dprsnn.com.paymentsRegisters.models.UkrPost;
+import dprsnn.com.paymentsRegisters.repos.ProcessedOrdersRepo;
 import dprsnn.com.paymentsRegisters.repos.UkrPostRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -18,7 +21,9 @@ public class CrmOrderService {
     private final WebClient webClient;
     private final UkrPostRepo ukrPostRepo;
     private final TelegramBotNotifier telegramBotNotifier;
+    private final ProcessedOrdersRepo processedOrders;
     private static final Logger logger = LoggerFactory.getLogger(CrmOrderService.class);
+
 
     private static final String MONO_UHT_PAYMENT = "mono_pay_uht";
     private static final String MONO_HH_PAYMENT = "mono_pay_hh";
@@ -26,12 +31,14 @@ public class CrmOrderService {
     private static final String EVO_PAY_PAYMENT = "evo_pay";
     private static final String UKR_POST_PAYMENT = "ukrpost";
     private static final String NOVA_PAY_PAYMENT = "nova_pay";
+    private static final String NOVA_PAY_PAYMENT_SWELL = "nova_pay_swell";
 
-    public CrmOrderService(SettingsService settingsService, WebClient webClient, UkrPostRepo ukrPostRepo, TelegramBotNotifier telegramBotNotifier) {
+    public CrmOrderService(SettingsService settingsService, WebClient webClient, UkrPostRepo ukrPostRepo, TelegramBotNotifier telegramBotNotifier, ProcessedOrdersRepo processedOrders) {
         this.settingsService = settingsService;
         this.webClient = webClient;
         this.ukrPostRepo = ukrPostRepo;
         this.telegramBotNotifier = telegramBotNotifier;
+        this.processedOrders = processedOrders;
     }
 
     public List<Map<String, Object>> makePayments(List<PaymentRecord> payments, String paymentType) {
@@ -58,6 +65,22 @@ public class CrmOrderService {
         List<Map<String, Object>> results = new ArrayList<>();
 
         for (PaymentRecord paymentRecord : payments) {
+
+            Optional<ProcessedOrders> existingOrderOpt = processedOrders.findById(Long.valueOf(paymentRecord.getOrderId()));
+
+            if (existingOrderOpt.isPresent()) {
+                ProcessedOrders existingOrder = existingOrderOpt.get();
+
+                telegramBotNotifier.sendTextMessageToTelegram(
+                        "❌ Пропущено обробку замовлення СРМ айді - " + paymentRecord.getOrderId() +
+                                ", Айді джерела - " + paymentRecord.getSourceOrderId() +
+                                ", ТТН - " + paymentRecord.getTtn() +
+                                ", у звʼязку з тим, що дане замовлення було оброблене раніше: " +
+                                existingOrder.getCreatedAt() + " (тип: " + existingOrder.getPaymentType() + ")"
+                );
+
+                continue;
+            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("orderId", paymentRecord.getSourceOrderId());  // Додаємо OrderId для кожного платежу
@@ -108,6 +131,8 @@ public class CrmOrderService {
                         paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Укр Пошта", settingsService.getUkrpostId());
                     } else if (paymentType.equals(NOVA_PAY_PAYMENT)){
                         paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Післяплата NovaPay", settingsService.getNovaPayId());
+                    } else if (paymentType.equals(NOVA_PAY_PAYMENT_SWELL)){
+                        paymentCreated = createPayment(Long.valueOf(paymentRecord.getOrderId()), paymentRecord.getAmount(), paymentRecord.getFormatedDate(), "Післяплата NovaPay", settingsService.getNovaPayIdSwell());
                     }
 
                     if (!paymentCreated) {
@@ -128,7 +153,7 @@ public class CrmOrderService {
                     }
 
                     // Оновлення статусу та кастомного поля
-                    if (paymentType.equals(EVO_PAY_PAYMENT) || paymentType.equals(UKR_POST_PAYMENT) || paymentType.equals(NOVA_PAY_PAYMENT)){
+                    if (paymentType.equals(EVO_PAY_PAYMENT) || paymentType.equals(UKR_POST_PAYMENT) || paymentType.equals(NOVA_PAY_PAYMENT) || paymentType.equals(NOVA_PAY_PAYMENT_SWELL)){
                         if (updateStatusAndCustomField(Long.valueOf(paymentRecord.getOrderId()), settingsService.getStatusId(), settingsService.getCustomField(), paymentRecord.getFormatedDate())) {
                             steps.add(Map.of("text", "Оновлено статус та поле", "color", "success"));
                         } else {
@@ -141,6 +166,15 @@ public class CrmOrderService {
                             steps.add(Map.of("text", "Помилка при оновленні статусу", "color", "danger"));
                         }
                     }
+
+                    try {
+                        Long orderIdLong = Long.parseLong(paymentRecord.getOrderId());
+                        processedOrders.save(new ProcessedOrders(orderIdLong, paymentType));
+                    } catch (NumberFormatException e) {
+                        // обробка ситуації, наприклад логування або скип
+                        System.err.println("Некоректний orderId: " + paymentRecord.getOrderId());
+                    }
+
 
                 }
             } catch (Exception e) {
@@ -380,7 +414,7 @@ public class CrmOrderService {
                         "amount", amount,
                         "payment_date", date
                 );
-            } else if(paymentType.equals(NOVA_PAY_PAYMENT)) {
+            } else if(paymentType.equals(NOVA_PAY_PAYMENT) || paymentType.equals(NOVA_PAY_PAYMENT_SWELL)) {
                 payload = Map.of(
                         "expense_type_id", settingsService.getNovaExpenseId(),
                         "expense_type", "Комисия Nova Pay",
@@ -417,8 +451,6 @@ public class CrmOrderService {
     private boolean updateStatusAndCustomField(Long orderId, String statusId, String customFieldUuid, String date) {
         String url = "https://openapi.keycrm.app/v1/order/" + orderId;
 
-//        System.out.println(statusId);
-
         try {
             Map<String, Object> customField = Map.of(
                     "uuid", customFieldUuid,
@@ -426,7 +458,7 @@ public class CrmOrderService {
             );
 
             Map<String, Object> payload = Map.of(
-                    "status_id", Integer.parseInt(statusId),
+//                    "status_id", Integer.parseInt(statusId),
                     "custom_fields", List.of(customField)
             );
 

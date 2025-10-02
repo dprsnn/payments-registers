@@ -160,7 +160,7 @@ public class GmailImapService {
                                                 } catch (Exception e) {
                                                     logger.error("Помилка при обробці реєстру Укрпошти: {}", e.getMessage(), e);
                                                 }
-                                            } else if (subject.contains("Реєстр платежів контрагента")) {
+                                            } else if (subject.contains("Реєстр платежів контрагента Ільніцький")) {
                                                 try {
                                                     // Створюємо папку для зберігання оригіналів, якщо її немає
                                                     Path originalDir = Paths.get("originals");
@@ -173,22 +173,49 @@ public class GmailImapService {
                                                     try (InputStream inputStream = bodyPart.getInputStream()) {  // Змінив назву змінної з is на inputStream
                                                         Files.copy(inputStream, originalFile, StandardCopyOption.REPLACE_EXISTING);
 
-
-
                                                         // Обробляємо файл
                                                         List<PaymentRecord> payments = processNovaPayFile(originalFile.toFile());
                                                         List<Map<String, Object>> results = crmOrderService.makePayments(payments, "nova_pay");
 //                                                        List<Map<String, Object>> results = new ArrayList<>();
 
-                                                        logger.info("Файл NovaPay успішно оброблено: {} платежів", payments.size());
+                                                        logger.info("Файл NovaPay Ільніцький успішно оброблено: {} платежів", payments.size());
 
                                                         // Надсилаємо оригінальний файл до Telegram
                                                         telegramBotNotifier.sendFileToTelegram(originalFile.toFile());
-                                                        logger.info("Оригінальний файл NovaPay надіслано до Telegram: {}", fileName);
+                                                        logger.info("Оригінальний файл Ільніцький NovaPay надіслано до Telegram: {}", fileName);
 
                                                     }
                                                 } catch (Exception e) {
-                                                    logger.error("Помилка при обробці файлу NovaPay: {}", e.getMessage(), e);
+                                                    logger.error("Помилка при обробці файлу NovaPay Ільніцький: {}", e.getMessage(), e);
+                                                }
+                                            }
+                                            else if (subject.contains("Реєстр платежів контрагента Єрмак")) {
+                                                try {
+                                                    // Створюємо папку для зберігання оригіналів, якщо її немає
+                                                    Path originalDir = Paths.get("originals");
+                                                    if (!Files.exists(originalDir)) {
+                                                        Files.createDirectories(originalDir);
+                                                    }
+
+                                                    // Зберігаємо оригінальний файл
+                                                    Path originalFile = originalDir.resolve(fileName);
+                                                    try (InputStream inputStream = bodyPart.getInputStream()) {  // Змінив назву змінної з is на inputStream
+                                                        Files.copy(inputStream, originalFile, StandardCopyOption.REPLACE_EXISTING);
+
+                                                        // Обробляємо файл
+                                                        List<PaymentRecord> payments = processNovaPayFile(originalFile.toFile());
+                                                        List<Map<String, Object>> results = crmOrderService.makePayments(payments, "nova_pay_swell");
+//                                                        List<Map<String, Object>> results = new ArrayList<>();
+
+                                                        logger.info("Файл NovaPay Єрмак успішно оброблено: {} платежів", payments.size());
+
+                                                        // Надсилаємо оригінальний файл до Telegram
+                                                        telegramBotNotifier.sendFileToTelegram(originalFile.toFile());
+                                                        logger.info("Оригінальний файл Єрмак NovaPay надіслано до Telegram: {}", fileName);
+
+                                                    }
+                                                } catch (Exception e) {
+                                                    logger.error("Помилка при обробці файлу NovaPay Єрмак: {}", e.getMessage(), e);
                                                 }
                                             }
                                         }

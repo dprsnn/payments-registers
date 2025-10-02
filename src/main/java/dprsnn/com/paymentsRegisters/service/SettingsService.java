@@ -18,7 +18,7 @@ public class SettingsService {
         return crmCredentialsRepo.findAll();
     }
 
-    public void savePayments(String novaPay, String monoUht, String monoHh, String monoSwell, String evoPay, String ukrpost) {
+    public void savePayments(String novaPay, String novaPaySwell, String monoUht, String monoHh, String monoSwell, String evoPay, String ukrpost) {
         // NOVA_PAY
         if (novaPay != null && !novaPay.isEmpty()) {
             CrmCredentialsModel crmCredentialsModel = crmCredentialsRepo.findByParamName("NOVA_PAY");
@@ -29,6 +29,18 @@ public class SettingsService {
             }
 
             crmCredentialsModel.setParamValue(novaPay);
+            crmCredentialsRepo.save(crmCredentialsModel);
+        }
+        // NOVA_PAY_SWELL
+        if (novaPaySwell != null && !novaPaySwell.isEmpty()) {
+            CrmCredentialsModel crmCredentialsModel = crmCredentialsRepo.findByParamName("NOVA_PAY_SWELL");
+
+            if (crmCredentialsModel == null) {
+                crmCredentialsModel = new CrmCredentialsModel();
+                crmCredentialsModel.setParamName("NOVA_PAY_SWELL");
+            }
+
+            crmCredentialsModel.setParamValue(novaPaySwell);
             crmCredentialsRepo.save(crmCredentialsModel);
         }
 
@@ -225,6 +237,10 @@ public class SettingsService {
         return Integer.parseInt(crmCredentialsRepo.findByParamName("NOVA_PAY").getParamValue());
     }
 
+    public int getNovaPayIdSwell(){
+        return Integer.parseInt(crmCredentialsRepo.findByParamName("NOVA_PAY_SWELL").getParamValue());
+    }
+
     public int getMonoUhtId(){
         return Integer.parseInt(crmCredentialsRepo.findByParamName("MONO_UHT").getParamValue());
     }
@@ -272,5 +288,64 @@ public class SettingsService {
 
     public int getUkrpostId() {
         return Integer.parseInt(crmCredentialsRepo.findByParamName("UKRPOST").getParamValue());
+    }
+
+    public int getSwellAcquiringId() {
+        return Integer.parseInt(crmCredentialsRepo.findByParamName("SWELL_EQ").getParamValue());
+    }
+    public int getUhtAcquiringId() {
+        return Integer.parseInt(crmCredentialsRepo.findByParamName("UHT_EQ").getParamValue());
+    }
+    public int getHhAcquiringId() {
+        return Integer.parseInt(crmCredentialsRepo.findByParamName("HH_EQ").getParamValue());
+    }
+
+
+    public void saveMonoSettings(String generalMono, String monoSwellEq, String monoUhtEq, String monoHHEq) {
+        if (generalMono != null && !generalMono.isEmpty()) {
+            CrmCredentialsModel crmCredentialsModel = crmCredentialsRepo.findByParamName("GENERAL_MONO");
+
+            if (crmCredentialsModel == null) {
+                crmCredentialsModel = new CrmCredentialsModel();
+                crmCredentialsModel.setParamName("GENERAL_MONO");
+            }
+
+            crmCredentialsModel.setParamValue(generalMono);
+            crmCredentialsRepo.save(crmCredentialsModel);
+        }
+        if (monoSwellEq != null && !monoSwellEq.isEmpty()) {
+            CrmCredentialsModel crmCredentialsModel = crmCredentialsRepo.findByParamName("SWELL_EQ");
+
+            if (crmCredentialsModel == null) {
+                crmCredentialsModel = new CrmCredentialsModel();
+                crmCredentialsModel.setParamName("SWELL_EQ");
+            }
+
+            crmCredentialsModel.setParamValue(monoSwellEq);
+            crmCredentialsRepo.save(crmCredentialsModel);
+        }
+        if (monoUhtEq != null && !monoUhtEq.isEmpty()) {
+            CrmCredentialsModel crmCredentialsModel = crmCredentialsRepo.findByParamName("UHT_EQ");
+
+            if (crmCredentialsModel == null) {
+                crmCredentialsModel = new CrmCredentialsModel();
+                crmCredentialsModel.setParamName("UHT_EQ");
+            }
+
+            crmCredentialsModel.setParamValue(monoUhtEq);
+            crmCredentialsRepo.save(crmCredentialsModel);
+        }
+
+        if (monoHHEq != null && !monoHHEq.isEmpty()) {
+            CrmCredentialsModel crmCredentialsModel = crmCredentialsRepo.findByParamName("HH_EQ");
+
+            if (crmCredentialsModel == null) {
+                crmCredentialsModel = new CrmCredentialsModel();
+                crmCredentialsModel.setParamName("HH_EQ");
+            }
+
+            crmCredentialsModel.setParamValue(monoHHEq);
+            crmCredentialsRepo.save(crmCredentialsModel);
+        }
     }
 }

@@ -42,8 +42,12 @@
                 <form action="/settings/save-payments" method="post" class="flex-grow-1 d-flex flex-column justify-content-between">
                     <div>
                         <div class="input-group mb-3">
-                            <span class="input-group-text" id="basic-addon2">NovaPay</span>
+                            <span class="input-group-text" id="basic-addon2">NovaPay UHT</span>
                             <input th:value="${NOVA_PAY}" name="nova-pay" type="text" class="form-control" placeholder="ID" aria-label="ID" aria-describedby="basic-addon2">
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="basic-addon22">NovaPay SWELL</span>
+                            <input th:value="${NOVA_PAY_SWELL}" name="nova-pay-swell" type="text" class="form-control" placeholder="ID" aria-label="ID" aria-describedby="basic-addon22">
                         </div>
                         <div class="input-group mb-3">
                             <span class="input-group-text" id="basic-addon13">EvoPay</span>
@@ -130,6 +134,33 @@
 
     </div>
 
+    <hr>
+
+    <div class="monobank">
+        <h3>Налаштування еквайрингів та загальних рахунків монобанк</h3>
+        <form action="/settings/save-mono" method="post">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="basic-addon16">Загальний рахунок Монобанк</span>
+                <input th:value="${GENERAL_MONO}" name="general-mono" type="text" class="form-control" placeholder="ID" aria-label="ID" aria-describedby="basic-addon16">
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="basic-addon17">Еквайринг swell.in.ua</span>
+                <input th:value="${SWELL_EQ}" name="mono-swell-eq" type="text" class="form-control" placeholder="ID" aria-label="ID" aria-describedby="basic-addon17">
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="basic-addon18">Еквайринг uht.net.ua</span>
+                <input th:value="${UHT_EQ}" name="mono-uht-eq" type="text" class="form-control" placeholder="ID" aria-label="ID" aria-describedby="basic-addon18">
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="basic-addon19">Еквайринг hh.in.ua</span>
+                <input th:value="${HH_EQ}" name="mono-hh-eq" type="text" class="form-control" placeholder="ID" aria-label="ID" aria-describedby="basic-addon19">
+            </div>
+
+            <button type="submit" class="btn btn-success">Save</button>
+
+        </form>
+
+    </div>
 </div>
 
 
